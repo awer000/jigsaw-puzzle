@@ -1,0 +1,15 @@
+{
+    "include": [
+        "src/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules"   
+    ],
+    "compilerOptions": {
+        "module": "esnext",
+        "rootDir": "src",
+        "outDir": "dist",
+        "target": "es5",
+        "sourceMap": true
+    }
+}
