@@ -31,7 +31,7 @@ const mouseTouchTracker = (canvas: HTMLCanvasElement, callback: (evtType: 'up' |
         const offsetLeft = rect.left;
 
         const { clientX, clientY } = evt instanceof TouchEvent ? evt.touches[0] : evt
-    
+
         return {
             x: clientX - offsetLeft,
             y: clientY - offsetTop
@@ -65,7 +65,7 @@ const mouseTouchTracker = (canvas: HTMLCanvasElement, callback: (evtType: 'up' |
     canvas.onmouseup = onUp;
 }
 
-function isHit(shape, x, y) {
+const isHit = (shape, x, y) => {
     // TODO: 직소 조각이 퍼즐 모양일 때 이 hit 함수를 어떻게 처리할까
     if (x > shape.x - shape.width * 0.5 && y > shape.y - shape.height * 0.5 && x < shape.x + shape.width - shape.width * 0.5 && y < shape.y + shape.height - shape.height * 0.5) {
         return true;
@@ -74,8 +74,51 @@ function isHit(shape, x, y) {
     return false;
 }
 
-type ClickEvent = TouchEvent | MouseEvent;
+const moveRectangle = (canvas, ctx, list) => {
+    let startX = 0, startY = 0
+    
+    return (evtType: 'up' | 'down' | 'move', x: number, y: number) => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        switch (evtType) {
+            case 'down':
+                startX = x;
+                startY = y;
+                list.forEach(item => {
+                    if (isHit(item, x, y)) {
+                        item.isDragging = true;
+                    }
+                })
 
+                break;
+
+            case 'up':
+                list.forEach(item => {
+                    item.isDragging = false;
+
+                })
+                break;
+
+            case 'move':
+                let dx = x - startX;
+                let dy = y - startY;
+                startX = x;
+                startY = y;
+
+                list.forEach(item => {
+                    if (item.isDragging) {
+                        item.x += dx;
+                        item.y += dy;
+                    }
+                })
+                break;
+        }
+
+        list.forEach(item => {
+            item.render(ctx);
+        })
+    }
+}
+type ClickEvent = TouchEvent | MouseEvent;
 
 const draw = () => {
     const canvas = <HTMLCanvasElement>document.getElementById('jigsaw');
@@ -83,61 +126,15 @@ const draw = () => {
     if (canvas.getContext) {
         const ctx = canvas.getContext('2d');
 
-        let startX = 0;
-        let startY = 0;
-
         const rectangle = new Rectangle(50, 50, 100, 100);
         const rectangle2 = new Rectangle(150, 150, 100, 100);
-        
+
         rectangle.render(ctx);
         rectangle2.render(ctx);
 
         const list = [rectangle, rectangle2];
 
-        mouseTouchTracker(canvas,
-            (evtType: 'up' | 'down' | 'move', x: number, y: number) => {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-                switch (evtType) {
-
-                    case 'down':
-                        startX = x;
-                        startY = y;
-                        list.forEach(item =>{
-                            if (isHit(item, x, y)) {
-                                item.isDragging = true;
-                            }
-                        })
-                        
-                        break;
-
-                    case 'up':
-                        list.forEach(item =>{
-                            item.isDragging = false;
-
-                        })
-                        break;
-
-                    case 'move':
-                        let dx = x - startX;
-                        let dy = y - startY;
-                        startX = x;
-                        startY = y;
-
-                        list.forEach(item => {
-                            if (item.isDragging) {
-                                item.x += dx;
-                                item.y += dy;
-                            }
-                        })
-                        break;
-                }
-
-                list.forEach(item => {
-                    item.render(ctx);
-                })
-            }
-        );
+        mouseTouchTracker(canvas, moveRectangle(canvas, ctx, list));
     }
 }
 
