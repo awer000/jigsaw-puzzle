@@ -4,12 +4,14 @@ class Rectangle {
     width = 100
     height = 100
     isDragging = false
+    color
 
-    constructor(x, y, width, height) {
+    constructor(x, y, width, height, color = 'blue') {
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
+        this.color = color
     }
 
     render(ctx: CanvasRenderingContext2D) {
@@ -17,7 +19,7 @@ class Rectangle {
         ctx.save();
         ctx.beginPath();
         ctx.rect(this.x - this.width * 0.5, this.y - this.height * 0.5, this.width, this.height);
-        ctx.fillStyle = '#2793ef';
+        ctx.fillStyle = this.color;
         ctx.fill();
 
         ctx.restore();
@@ -126,13 +128,18 @@ const draw = () => {
     if (canvas.getContext) {
         const ctx = canvas.getContext('2d');
 
+        const redRectangle = new Rectangle(150, 50, 100, 100, 'red');
+
         const rectangle = new Rectangle(50, 50, 100, 100);
         const rectangle2 = new Rectangle(150, 150, 100, 100);
+
 
         rectangle.render(ctx);
         rectangle2.render(ctx);
 
-        const list = [rectangle, rectangle2];
+        redRectangle.render(ctx)
+
+        const list = [redRectangle, rectangle, rectangle2];
 
         mouseTouchTracker(canvas, moveRectangle(canvas, ctx, list));
     }
