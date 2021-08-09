@@ -1,14 +1,16 @@
 class Rectangle {
     x = 0
     y = 0
+    z = 0
     width = 100
     height = 100
     isDragging = false
     color
 
-    constructor(x, y, width, height, color = 'blue') {
+    constructor({x, y, z = 0, width, height, color = 'blue'}) {
         this.x = x;
         this.y = y;
+        this.z = z;
         this.width = width;
         this.height = height;
         this.color = color
@@ -26,7 +28,9 @@ class Rectangle {
     }
 }
 
-const mouseTouchTracker = (canvas: HTMLCanvasElement, callback: (evtType: 'up' | 'down' | 'move', x?: number, y?: number) => void) => {
+const mouseTouchTracker = (canvas: HTMLCanvasElement, callback: (evtType: 'up' | 'down' | 'move', x?: number, y?: number, z?: number) => void) => {
+    const zIndex = 1;
+
     function processEvent(evt: ClickEvent) {
         const rect = canvas.getBoundingClientRect();
         const offsetTop = rect.top;
@@ -43,7 +47,7 @@ const mouseTouchTracker = (canvas: HTMLCanvasElement, callback: (evtType: 'up' |
     function onDown(evt: ClickEvent) {
         evt.preventDefault();
         const coords = processEvent(evt);
-        callback('down', coords.x, coords.y);
+        callback('down', coords.x, coords.y, zIndex);
     }
 
     function onUp(evt: ClickEvent) {
@@ -54,7 +58,7 @@ const mouseTouchTracker = (canvas: HTMLCanvasElement, callback: (evtType: 'up' |
     function onMove(evt: ClickEvent) {
         evt.preventDefault();
         const coords = processEvent(evt);
-        callback('move', coords.x, coords.y);
+        callback('move', coords.x, coords.y, zIndex);
     }
 
     canvas.ontouchmove = onMove;
@@ -67,9 +71,9 @@ const mouseTouchTracker = (canvas: HTMLCanvasElement, callback: (evtType: 'up' |
     canvas.onmouseup = onUp;
 }
 
-const isHit = (shape, x, y) => {
+const isHit = (shape, x, y, z) => {
     // TODO: 직소 조각이 퍼즐 모양일 때 이 hit 함수를 어떻게 처리할까
-    if (x > shape.x - shape.width * 0.5 && y > shape.y - shape.height * 0.5 && x < shape.x + shape.width - shape.width * 0.5 && y < shape.y + shape.height - shape.height * 0.5) {
+    if (shape.z === z && x > shape.x - shape.width * 0.5 && y > shape.y - shape.height * 0.5 && x < shape.x + shape.width - shape.width * 0.5 && y < shape.y + shape.height - shape.height * 0.5) {
         return true;
     }
 
@@ -79,14 +83,14 @@ const isHit = (shape, x, y) => {
 const moveRectangle = (canvas, ctx, list) => {
     let startX = 0, startY = 0
     
-    return (evtType: 'up' | 'down' | 'move', x: number, y: number) => {
+    return (evtType: 'up' | 'down' | 'move', x: number, y: number, z: number) => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         switch (evtType) {
             case 'down':
                 startX = x;
                 startY = y;
                 list.forEach(item => {
-                    if (isHit(item, x, y)) {
+                    if (isHit(item, x, y, z)) {
                         item.isDragging = true;
                     }
                 })
@@ -128,10 +132,10 @@ const draw = () => {
     if (canvas.getContext) {
         const ctx = canvas.getContext('2d');
 
-        const redRectangle = new Rectangle(150, 50, 100, 100, 'red');
+        const redRectangle = new Rectangle({ x: 150, y: 50, width: 100, height: 100, color: 'red'});
 
-        const rectangle = new Rectangle(50, 50, 100, 100);
-        const rectangle2 = new Rectangle(150, 150, 100, 100);
+        const rectangle = new Rectangle({ x: 50, y: 50, z: 1, width: 100, height: 100});
+        const rectangle2 = new Rectangle({ x: 150, y: 150, z: 1, width: 100,height: 100});
 
 
         rectangle.render(ctx);
