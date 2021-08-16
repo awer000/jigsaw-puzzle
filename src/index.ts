@@ -15,7 +15,7 @@ const scene = new THREE.Scene();
 
 const boxWidth = 1;
 const boxHeight = 1;
-const boxDepth = 1;
+const boxDepth = 0.1;
 
 // cube 만들기
 
@@ -57,6 +57,25 @@ function onMouseMove(event) {
 
     raycaster.setFromCamera(mouse, camera);
 
+    if (selected) {
+        selected.position.set(mouse.x, mouse.y, 1)
+    }
+}
+
+function onMouseDown(event: MouseEvent) {
+    event.preventDefault();
+
+    const offset = document.getElementById('jigsaw').getBoundingClientRect();
+    const pos = {
+        x: event.pageX - offset.left,
+        y: event.pageY - offset.top
+    };
+
+    mouse.x = (pos.x / 1024) * 2 - 1;
+    mouse.y = -(pos.y / 1024) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+
     const intersects = raycaster.intersectObjects(scene.children);
 
 
@@ -64,11 +83,15 @@ function onMouseMove(event) {
         if (intersects[i].object) {
             if (!selected) {
                 selected = intersects[i].object
+                selected.position.set(selected.position.x, selected.position.y, 1)
+
                 if (!beforeColor) {
                     beforeColor = { ...selected.material.color }
                 }
                 selected.material.color.set('blue')
             } else {
+                selected.position.set(selected.position.x, selected.position.y, 1)
+
                 if (selected === intersects[i].object) {
                     if (!beforeColor) {
                         beforeColor = { ...selected.material.color }
@@ -101,6 +124,21 @@ function onMouseMove(event) {
         selected.material.color.set(new THREE.Color(r, g, b))
         beforeColor = null
     }
+
+    console.log(selected)
+
+}
+
+function onMouseUp(event: MouseEvent) {
+    event.preventDefault();
+
+    if (selected) {
+        selected.position.set(selected.position.x, selected.position.y, 0)
+        const { r, g, b } = beforeColor
+        selected.material.color.set(new THREE.Color(r, g, b))
+        beforeColor = null
+        selected = null;
+    }
 }
 
 const draw = () => {
@@ -108,6 +146,8 @@ const draw = () => {
     renderer.render(scene, camera);
 }
 
+window.addEventListener('mouseup', onMouseUp)
+window.addEventListener('mousedown', onMouseDown)
 window.addEventListener('mousemove', onMouseMove, false);
 window.requestAnimationFrame(draw);
 
