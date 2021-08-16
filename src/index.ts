@@ -16,17 +16,32 @@ const scene = new THREE.Scene();
 const boxWidth = 1;
 const boxHeight = 1;
 const boxDepth = 1;
-const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
-const material = new THREE.MeshBasicMaterial({ color: 'pink' });  // greenish blue
 
+// cube 만들기
+
+const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+const material = new THREE.MeshBasicMaterial({ color: 'pink' });
 const cube = new THREE.Mesh(geometry, material);
-scene.add(cube);
+
+const geometry2 = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+const material2 = new THREE.MeshBasicMaterial({ color: 'yellow' });
+const cube2 = new THREE.Mesh(geometry2, material2);
+cube2.position.set(0, 1, 0)
+
+const geometry3 = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+const material3 = new THREE.MeshBasicMaterial({ color: 'gray' });
+const cube3 = new THREE.Mesh(geometry3, material3);
+cube3.position.set(-1, 0, 0)
+
+
+// 만든 큐브 추가
+scene.add(cube, cube2, cube3);
 
 const renderer = new THREE.WebGLRenderer({ canvas });
 renderer.render(scene, camera);
 
 const raycaster = new THREE.Raycaster();
-let selected
+let selected, beforeColor
 
 function onMouseMove(event) {
     event.preventDefault();
@@ -47,13 +62,44 @@ function onMouseMove(event) {
 
     for (let i = 0; i < intersects.length; i++) {
         if (intersects[i].object) {
-            selected = intersects[i].object
-            selected.material.color.set('blue')
+            if (!selected) {
+                selected = intersects[i].object
+                if (!beforeColor) {
+                    beforeColor = { ...selected.material.color }
+                }
+                selected.material.color.set('blue')
+            } else {
+                if (selected === intersects[i].object) {
+                    if (!beforeColor) {
+                        beforeColor = { ...selected.material.color }
+                    }
+                    selected.material.color.set('blue')
+                } else {
+                    // 바로 전 선택 색깔 되돌리기
+
+                    if (beforeColor) {
+                        const { r, g, b } = beforeColor
+                        selected.material.color.set(new THREE.Color(r, g, b))
+                        beforeColor = null
+                    }
+
+
+                    // 지금 선택한 것을 selected로 선택하고 beforeColor 설정하기
+                    selected = intersects[i].object
+                    if (!beforeColor) {
+                        beforeColor = { ...selected.material.color }
+                    }
+                    selected.material.color.set('blue')
+
+                }
+            }
         }
     }
 
-    if (!intersects.length && selected) {
-        selected.material.color.set('pink')
+    if (!intersects.length && selected && beforeColor) {
+        const { r, g, b } = beforeColor
+        selected.material.color.set(new THREE.Color(r, g, b))
+        beforeColor = null
     }
 }
 
