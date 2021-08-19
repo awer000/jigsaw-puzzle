@@ -1,155 +1,76 @@
+
+
 import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 
+var scene = new THREE.Scene();
+var camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 1, 1000);
+camera.position.set(0, 10, 0);
+var renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
 
-const mouse = new THREE.Vector2();
-const canvas = document.getElementById('jigsaw');
+var controls = new OrbitControls(camera, renderer.domElement);
+controls.enabled = false;
 
-const fov = 90;
-const aspect = 1;  // the canvas default
-const near = 0.1;
-const far = 10;
-const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-camera.position.z = 10;
+scene.add(new THREE.GridHelper(10, 10));
 
-const scene = new THREE.Scene();
+var raycaster = new THREE.Raycaster();
+var mouse = new THREE.Vector2();
+var plane = new THREE.Plane();
+var pNormal = new THREE.Vector3(0, 1, 0); // plane's normal
+var planeIntersect = new THREE.Vector3(); // point of intersection with the plane
+var pIntersect = new THREE.Vector3(); // point of intersection with an object (plane's point)
+var shift = new THREE.Vector3(); // distance between position of an object and points of intersection with the object
+var isDragging = false;
+var dragObject;
 
-const boxWidth = 1;
-const boxHeight = 1;
-const boxDepth = 0.1;
-
-// cube 만들기
-
-const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+// cube
+const geometry = new THREE.BoxGeometry(1, 0.001, 1);
 const material = new THREE.MeshBasicMaterial({ color: 'pink' });
 const cube = new THREE.Mesh(geometry, material);
+cube.position.set(-0.5, 0, -0.5)
 
-const geometry2 = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+const geometry2 = new THREE.BoxGeometry(1, 0.001, 1);
 const material2 = new THREE.MeshBasicMaterial({ color: 'yellow' });
 const cube2 = new THREE.Mesh(geometry2, material2);
-cube2.position.set(0, 1, 0)
+cube2.position.set(0.5, 0, -0.5)
 
-const geometry3 = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
-const material3 = new THREE.MeshBasicMaterial({ color: 'gray' });
-const cube3 = new THREE.Mesh(geometry3, material3);
-cube3.position.set(-1, 0, 0)
+scene.add(cube, cube2);
 
+// events
+document.addEventListener("mousemove", event => {
 
-// 만든 큐브 추가
-scene.add(cube, cube2, cube3);
-
-const renderer = new THREE.WebGLRenderer({ canvas });
-renderer.render(scene, camera);
-
-const raycaster = new THREE.Raycaster();
-let selected, beforeColor
-
-function onMouseMove(event) {
-    event.preventDefault();
-
-    const offset = document.getElementById('jigsaw').getBoundingClientRect();
-    const pos = {
-        x: event.pageX - offset.left,
-        y: event.pageY - offset.top
-    };
-
-    mouse.x = (pos.x / 1024) * 2 - 1;
-    mouse.y = -(pos.y / 1024) * 2 + 1;
-
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
 
-    if (selected) {
-        selected.position.set(mouse.x, mouse.y, 1)
+    if (isDragging) {
+        raycaster.ray.intersectPlane(plane, planeIntersect);
+        dragObject.position.addVectors(planeIntersect, shift);
     }
-}
+});
 
-function onMouseDown(event: MouseEvent) {
-    event.preventDefault();
+document.addEventListener("mousedown", () => {
+    var intersects = raycaster.intersectObjects([cube, cube2]);
+    
+    if (intersects.length > 0) {
+        pIntersect.copy(intersects[0].point);
+        plane.setFromNormalAndCoplanarPoint(pNormal, pIntersect);
+        shift.subVectors(intersects[0].object.position, intersects[0].point);
+        isDragging = true;
+        dragObject = intersects[0].object;
 
-    const offset = document.getElementById('jigsaw').getBoundingClientRect();
-    const pos = {
-        x: event.pageX - offset.left,
-        y: event.pageY - offset.top
-    };
-
-    mouse.x = (pos.x / 1024) * 2 - 1;
-    mouse.y = -(pos.y / 1024) * 2 + 1;
-
-    raycaster.setFromCamera(mouse, camera);
-
-    const intersects = raycaster.intersectObjects(scene.children);
-
-
-    for (let i = 0; i < intersects.length; i++) {
-        if (intersects[i].object) {
-            if (!selected) {
-                selected = intersects[i].object
-                selected.position.set(selected.position.x, selected.position.y, 1)
-
-                if (!beforeColor) {
-                    beforeColor = { ...selected.material.color }
-                }
-                selected.material.color.set('blue')
-            } else {
-                selected.position.set(selected.position.x, selected.position.y, 1)
-
-                if (selected === intersects[i].object) {
-                    if (!beforeColor) {
-                        beforeColor = { ...selected.material.color }
-                    }
-                    selected.material.color.set('blue')
-                } else {
-                    // 바로 전 선택 색깔 되돌리기
-
-                    if (beforeColor) {
-                        const { r, g, b } = beforeColor
-                        selected.material.color.set(new THREE.Color(r, g, b))
-                        beforeColor = null
-                    }
-
-
-                    // 지금 선택한 것을 selected로 선택하고 beforeColor 설정하기
-                    selected = intersects[i].object
-                    if (!beforeColor) {
-                        beforeColor = { ...selected.material.color }
-                    }
-                    selected.material.color.set('blue')
-
-                }
-            }
-        }
     }
+});
 
-    if (!intersects.length && selected && beforeColor) {
-        const { r, g, b } = beforeColor
-        selected.material.color.set(new THREE.Color(r, g, b))
-        beforeColor = null
-    }
+document.addEventListener("mouseup", () => {
+    isDragging = false;
+    dragObject = null;
+});
 
-    console.log(selected)
 
-}
-
-function onMouseUp(event: MouseEvent) {
-    event.preventDefault();
-
-    if (selected) {
-        selected.position.set(selected.position.x, selected.position.y, 0)
-        const { r, g, b } = beforeColor
-        selected.material.color.set(new THREE.Color(r, g, b))
-        beforeColor = null
-        selected = null;
-    }
-}
-
-const draw = () => {
-    requestAnimationFrame(draw);
+renderer.setAnimationLoop(() => {
     renderer.render(scene, camera);
-}
-
-window.addEventListener('mouseup', onMouseUp)
-window.addEventListener('mousedown', onMouseDown)
-window.addEventListener('mousemove', onMouseMove, false);
-window.requestAnimationFrame(draw);
-
-
+})
 
